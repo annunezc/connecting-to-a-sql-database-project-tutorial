@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -10,17 +10,18 @@ load_dotenv()
 
 connection_string = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
 engine = create_engine(connection_string).execution_options(autocommit=True)
-engine.connect()
-db=engine.connect()
-engine.execute("""DROP TABLE book_authors;
-               DROP TABLE books;
-               DROP TABLE authors;
-               DROP TABLE publishers;
-               """)
+conn = engine.connect()
+
+conn.execute(text('''DROP TABLE IF EXISTS book_authors;
+               DROP TABLE IF EXISTS books;
+               DROP TABLE IF EXISTS authors;
+               DROP TABLE IF EXISTS publishers;
+               '''))
 
 
 # 2) Execute the SQL sentences to create your tables using the SQLAlchemy's execute function
-engine.execute(""" CREATE TABLE publishers(
+conn.execute(text("""
+CREATE TABLE publishers(
     publisher_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     PRIMARY KEY(publisher_id)
@@ -52,11 +53,12 @@ CREATE TABLE book_authors (
     PRIMARY KEY(book_id, author_id),
     CONSTRAINT fk_book FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE,
     CONSTRAINT fk_author FOREIGN KEY(author_id) REFERENCES authors(author_id) ON DELETE CASCADE
-);  """)
+);
+"""))
 
 
 # 3) Execute the SQL sentences to insert your data using the SQLAlchemy's execute function
-engine.execute("""  -- publishers
+conn.execute(text("""  -- publishers
 INSERT INTO publishers(publisher_id, name) VALUES (1, 'O Reilly Media');
 INSERT INTO publishers(publisher_id, name) VALUES (2, 'A Book Apart');
 INSERT INTO publishers(publisher_id, name) VALUES (3, 'A K PETERS');
@@ -97,9 +99,9 @@ INSERT INTO book_authors (book_id, author_id) VALUES (6, 4);
 INSERT INTO book_authors (book_id, author_id) VALUES (7, 3);
 INSERT INTO book_authors (book_id, author_id) VALUES (8, 2);
 INSERT INTO book_authors (book_id, author_id) VALUES (9, 4);
-INSERT INTO book_authors (book_id, author_id) VALUES (10, 1);   """)
+INSERT INTO book_authors (book_id, author_id) VALUES (10, 1);   """))
 
 
 # 4) Use pandas to print one of the tables as dataframes using read_sql function
-dataframe = pd.read_sql("Select * from books;", engine)
+dataframe = pd.read_sql("Select * from books;", conn)
 print(dataframe.describe())
